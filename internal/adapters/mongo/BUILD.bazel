@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mongo",
+    srcs = [
+        "audit.go",
+        "catalog.go",
+    ],
+    importpath = "github.com/robertarktes/ticket-reservations-and-orders/internal/adapters/mongo",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@go_mongodb_org_mongo_driver//bson",
+        "@go_mongodb_org_mongo_driver//mongo",
+        "@go_mongodb_org_mongo_driver//mongo/options",
+    ],
+)

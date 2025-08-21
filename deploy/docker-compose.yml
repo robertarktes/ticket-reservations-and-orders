@@ -1,0 +1,130 @@
+# Path: deploy/docker-compose.yml
+version: '3.9'
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - CRDB_DSN=postgresql://root@crdb:26257/tro?sslmode=disable
+      - MONGO_URI=mongodb://mongo:27017
+      - REDIS_ADDR=redis:6379
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+      - HOLD_TTL=300s
+    depends_on:
+      - crdb
+      - mongo
+      - redis
+      - rabbitmq
+    networks:
+      - tro-net
+
+  outbox-publisher:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: ["./outbox-publisher"]
+    environment:
+      - CRDB_DSN=postgresql://root@crdb:26257/tro?sslmode=disable
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - crdb
+      - rabbitmq
+    networks:
+      - tro-net
+
+  expiry-worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: ["./expiry-worker"]
+    environment:
+      - CRDB_DSN=postgresql://root@crdb:26257/tro?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - crdb
+      - redis
+      - rabbitmq
+    networks:
+      - tro-net
+
+  crdb:
+    image: cockroachdb/cockroach:v24.1.1
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"
+      - "8081:8080"
+    volumes:
+      - crdb-data:/cockroach/cockroach-data
+    networks:
+      - tro-net
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - tro-net
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tro-net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - tro-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - "4317:4317"
+      - "9090:9090"
+    depends_on:
+      - jaeger
+    networks:
+      - tro-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14250:14250"
+    networks:
+      - tro-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9091:9090"
+    networks:
+      - tro-net
+
+volumes:
+  crdb-data:
+  mongo-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  tro-net:
+    driver: bridge

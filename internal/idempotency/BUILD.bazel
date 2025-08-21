@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "idempotency",
+    srcs = ["idempotency.go"],
+    importpath = "github.com/robertarktes/ticket-reservations-and-orders/internal/idempotency",
+    visibility = ["//:__subpackages__"],
+    deps = ["//internal/adapters/redis"],
+)

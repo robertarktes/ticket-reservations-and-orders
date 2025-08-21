@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "expiry_worker_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/robertarktes/ticket-reservations-and-orders/cmd/expiry-worker",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/config",
+        "//internal/adapters/crdb",
+        "//internal/adapters/rabbit",
+        "//internal/adapters/redis",
+        "//internal/config",
+        "//internal/observability",
+        "//internal/domain",
+        "//github.com/jackc/pgx/v5/pgxpool",
+        "//github.com/redis/go-redis/v9",
+        "//github.com/rabbitmq/amqp091-go",
+        "//github.com/google/uuid",
+    ],
+)
+
+go_binary(
+    name = "expiry_worker",
+    embed = [":expiry_worker_lib"],
+    visibility = ["//visibility:public"],
+)
+
+load("@rules_oci//oci:defs.bzl", "oci_image")
+
+oci_image(
+    name = "expiry_worker_image",
+    base = "@distroless_base",
+    cmd = ["//cmd/expiry-worker:expiry_worker"],
+    entrypoint = ["/expiry_worker"],
+)

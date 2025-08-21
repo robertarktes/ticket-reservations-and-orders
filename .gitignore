@@ -1,0 +1,10 @@
+.env
+
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-workspace
+bazel-cache
+bazel-ticket-reservations-and-orders
+
+WORKSPACE

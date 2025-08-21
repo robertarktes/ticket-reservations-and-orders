@@ -1,0 +1,37 @@
+# Path: .golangci.yml
+run:
+  timeout: 5m
+  skip-dirs:
+    - migrations
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - goimports
+    - misspell
+    - unconvert
+    - revive
+linters-settings:
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/robertarktes/ticket-reservations-and-orders
+  revive:
+    rules:
+      - name: context-keys-type
+      - name: context-as-argument
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - unused

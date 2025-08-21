@@ -1,0 +1,154 @@
+openapi: 3.0.0
+info:
+  title: Ticket Reservations & Orders API
+  version: 1.0.0
+  description: API for managing ticket holds and orders
+paths:
+  /v1/holds:
+    post:
+      summary: Create a hold on seats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_id:
+                  type: string
+                  format: uuid
+                seats:
+                  type: array
+                  items:
+                    type: string
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Hold created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hold_id:
+                    type: string
+                    format: uuid
+                  expires_at:
+                    type: string
+                    format: date-time
+        '409':
+          description: Conflict, seats already held
+      security:
+        - bearerAuth: []
+  /v1/orders:
+    post:
+      summary: Create an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_id:
+                  type: string
+                  format: uuid
+                seats:
+                  type: array
+                  items:
+                    type: string
+                user_id:
+                  type: string
+                  format: uuid
+                payment_method:
+                  type: string
+      responses:
+        '202':
+          description: Order accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+        '409':
+          description: Conflict
+      security:
+        - bearerAuth: []
+  /v1/orders/{id}:
+    get:
+      summary: Get order details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: number
+      security:
+        - bearerAuth: []
+  /v1/payments/callback:
+    post:
+      summary: Payment callback (mock)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+                transaction_id:
+                  type: string
+      responses:
+        '200':
+          description: Processed
+  /v1/healthz:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /v1/readyz:
+    get:
+      summary: Readiness check
+      responses:
+        '200':
+          description: Ready
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Metrics
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
