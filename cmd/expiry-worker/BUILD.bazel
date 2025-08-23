@@ -10,13 +10,8 @@ go_library(
         "//internal/adapters/crdb",
         "//internal/adapters/rabbit",
         "//internal/adapters/redis",
-        "//internal/config",
         "//internal/observability",
         "//internal/domain",
-        "//github.com/jackc/pgx/v5/pgxpool",
-        "//github.com/redis/go-redis/v9",
-        "//github.com/rabbitmq/amqp091-go",
-        "//github.com/google/uuid",
     ],
 )
 

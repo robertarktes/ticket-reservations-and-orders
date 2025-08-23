@@ -26,12 +26,12 @@ A production-ready microservices system for ticket booking and order management 
 - **Message Queue**: RabbitMQ for event publishing
 - **Document Store**: MongoDB for event catalog
 - **Observability**: OpenTelemetry, structured logging
-- **Build**: Bazel for fast, reproducible, incremental builds
+- **Build**: Go modules with fast, cross-platform compilation
 
 ## 📋 Prerequisites
 
 - Go 1.21+
-- Bazel 6.0+ (for advanced builds)
+- Go 1.21+ (for modern features)
 - Docker & Docker Compose
 - CockroachDB
 - Redis
@@ -42,27 +42,29 @@ A production-ready microservices system for ticket booking and order management 
 
 ```bash
 # Clone and setup
-git clone <repository>
+git clone https://github.com/robertarktes/ticket-reservations-and-orders.git
 cd ticket-reservations-and-orders
 
 # Install dependencies
 go mod tidy
 
-# Build with Bazel
-bazel build //cmd/api:api
-bazel build //cmd/expiry-worker:expiry_worker
-bazel build //cmd/outbox-publisher:outbox_publisher
-
-# Or build with Go
+# Build with Go (recommended for development)
 go build ./...
 
+# Build with Bazel (requires external deps setup - see WORKSPACE)
+# bazel build --enable_workspace --noenable_bzlmod //cmd/api:api
+
 # Run with Docker
+cd deploy
 docker-compose up -d
 
+# Check services
+docker-compose ps
+
 # Start services
-bazel run //cmd/api:api &
-bazel run //cmd/expiry-worker:expiry_worker &
-bazel run //cmd/outbox-publisher:outbox_publisher &
+go run cmd/api/main.go &
+go run cmd/expiry-worker/main.go &
+go run cmd/outbox-publisher/main.go &
 ```
 
 ## 📚 API Endpoints
@@ -96,37 +98,41 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ## 🧪 Testing
 
 ```bash
-# Build and test with Bazel
-bazel build //...
-bazel test //...
+# Test with Go
+go test ./internal/...
 
-# Or test with Go
-go test ./...
-
-# Integration tests
+# Integration tests (requires Docker)
+cd deploy
+docker-compose up -d
+cd ..
 go test ./test/integration/...
+cd deploy
+docker-compose down
+cd ..
 ```
 
-## 🔧 Bazel Features
+## 🔧 Build Features
 
-- **Incremental Builds**: Only rebuilds changed dependencies
-- **Remote Caching**: Shared build cache across team
-- **Hermetic Builds**: Reproducible builds with locked toolchains
-- **Parallel Execution**: Fast builds with dependency graph optimization
+- **Go Modules**: Modern dependency management
+- **Bazel Support**: Fast, hermetic builds (see WORKSPACE for setup)
+- **Cross-Platform**: Build for any OS/architecture
+- **Docker Integration**: Containerized builds
 
 ```bash
-# Build specific targets
-bazel build //cmd/api:api
-bazel build //internal/...
+# Build for specific platform
+GOOS=linux GOARCH=amd64 go build ./...
 
-# Run tests with caching
-bazel test //... --test_output=errors
+# Build with optimizations
+go build -ldflags="-s -w" ./...
 
-# Query dependency graph
-bazel query "deps(//cmd/api:api)"
+# Build with race detection
+go build -race ./...
 
-# Build with remote cache (if configured)
-bazel build //... --remote_cache=grpc://cache.example.com:9092
+# Bazel builds (requires external deps configuration)
+# bazel build --enable_workspace --noenable_bzlmod //cmd/api:api
+
+# For Bazel setup, configure external dependencies in WORKSPACE
+# Example: go_repository for external Go modules
 ```
 
 ## 📊 Monitoring
@@ -161,8 +167,10 @@ bazel build //... --remote_cache=grpc://cache.example.com:9092
 ## 🚀 Deployment
 
 ```bash
-# Build binaries with Bazel
-bazel build //cmd/api:api //cmd/expiry-worker:expiry_worker //cmd/outbox-publisher:outbox_publisher
+# Build binaries with Go
+go build -o bin/api cmd/api/main.go
+go build -o bin/expiry-worker cmd/expiry-worker/main.go
+go build -o bin/outbox-publisher cmd/outbox-publisher/main.go
 
 # Build Docker images
 docker build -t tro-api cmd/api/

@@ -10,5 +10,4 @@ go_library(
     ],
     importpath = "github.com/robertarktes/ticket-reservations-and-orders/internal/domain",
     visibility = ["//:__subpackages__"],
-    deps = ["@com_github_google_uuid//:uuid"],
 )

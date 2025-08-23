@@ -10,8 +10,6 @@ go_library(
         "//internal/adapters/rabbit",
         "//internal/config",
         "//internal/observability",
-        "@com_github_jackc_pgx_v5//pgxpool",
-        "@com_github_rabbitmq_amqp091_go//:amqp091-go",
     ],
 )
 

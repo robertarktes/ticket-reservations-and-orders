@@ -12,7 +12,5 @@ go_library(
     deps = [
         "//internal/domain",
         "//internal/idempotency",
-        "@com_github_go_chi_chi_v5//:chi",
-        "@com_github_google_uuid//:uuid",
     ],
 )
