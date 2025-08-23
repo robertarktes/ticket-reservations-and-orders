@@ -1,4 +1,3 @@
-# Path: deploy/otel-collector-config.yml
 receivers:
   otlp:
     protocols:

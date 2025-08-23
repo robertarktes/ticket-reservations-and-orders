@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -70,6 +72,48 @@ func NewOutboxPublisher(repo *crdb.Repository, rabbitPub *rabbit.Publisher, logg
 }
 
 func (p *OutboxPublisher) Run(ctx context.Context) {
-	p.logger.Info("Outbox publisher started")
-	<-ctx.Done()
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			records, err := p.repo.GetUnpublishedOutbox(ctx, 100)
+			if err != nil {
+				p.logger.Error("failed to get outbox records", err)
+				continue
+			}
+			for _, rec := range records {
+				if err := p.publishWithRetry(ctx, rec); err != nil {
+					p.logger.Error("failed to publish after retries", err)
+				}
+			}
+		}
+	}
+}
+
+func (p *OutboxPublisher) publishWithRetry(ctx context.Context, rec crdb.OutboxRecord) error {
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		msg := amqp.Publishing{
+			MessageId:   rec.DedupeKey,
+			ContentType: "application/json",
+			Body:        rec.Payload,
+		}
+
+		err := p.rabbitPub.Publish(ctx, rec.EventType, msg)
+		if err == nil {
+			return p.repo.MarkPublished(ctx, rec.ID, time.Now(), rec.DedupeKey)
+		}
+
+		backoff := time.Duration(1<<i) * time.Second
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(backoff):
+		}
+	}
+	return fmt.Errorf("failed after %d retries", maxRetries)
 }

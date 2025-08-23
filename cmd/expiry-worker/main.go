@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -17,6 +18,7 @@ import (
 	"github.com/robertarktes/ticket-reservations-and-orders/internal/adapters/rabbit"
 	redisadapter "github.com/robertarktes/ticket-reservations-and-orders/internal/adapters/redis"
 	"github.com/robertarktes/ticket-reservations-and-orders/internal/config"
+	"github.com/robertarktes/ticket-reservations-and-orders/internal/domain"
 	"github.com/robertarktes/ticket-reservations-and-orders/internal/observability"
 )
 
@@ -93,23 +95,40 @@ func (w *ExpiryWorker) Run(ctx context.Context, interval time.Duration) {
 				continue
 			}
 			for _, hold := range holds {
-				err := w.repo.ReleaseHold(ctx, hold.ID)
-				if err != nil {
-					w.logger.Error("failed to release hold", err)
-					continue
+				if err := w.processExpiredHoldWithRetry(ctx, hold); err != nil {
+					w.logger.Error("failed to process expired hold after retries", err)
 				}
-				for _, seat := range hold.Seats {
-					redisClient := redisclient.NewClient(&redisclient.Options{Addr: "localhost:6379"})
-					redisClient.Del(ctx, "hold:"+hold.EventID.String()+":"+seat)
-				}
-				payload, _ := json.Marshal(map[string]interface{}{"hold_id": hold.ID})
-				msg := amqp.Publishing{
-					MessageId:   uuid.New().String(),
-					ContentType: "application/json",
-					Body:        payload,
-				}
-				w.rabbitPub.Publish(ctx, "hold.expired", msg)
 			}
 		}
 	}
+}
+
+func (w *ExpiryWorker) processExpiredHoldWithRetry(ctx context.Context, hold domain.Hold) error {
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		err := w.repo.ReleaseHold(ctx, hold.ID)
+		if err != nil {
+			backoff := time.Duration(1<<i) * time.Second
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+				continue
+			}
+		}
+
+		for _, seat := range hold.Seats {
+			redisClient := redisclient.NewClient(&redisclient.Options{Addr: "localhost:6379"})
+			redisClient.Del(ctx, "hold:"+hold.EventID.String()+":"+seat)
+		}
+
+		payload, _ := json.Marshal(map[string]interface{}{"hold_id": hold.ID})
+		msg := amqp.Publishing{
+			MessageId:   uuid.New().String(),
+			ContentType: "application/json",
+			Body:        payload,
+		}
+		return w.rabbitPub.Publish(ctx, "hold.expired", msg)
+	}
+	return fmt.Errorf("failed after %d retries", maxRetries)
 }

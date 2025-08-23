@@ -6,10 +6,20 @@ go_library(
     importpath = "github.com/robertarktes/ticket-reservations-and-orders/cmd/api",
     visibility = ["//visibility:private"],
     deps = [
+        "//internal/adapters/crdb",
+        "//internal/adapters/mongo",
+        "//internal/adapters/rabbit",
+        "//internal/adapters/redis",
         "//internal/config",
         "//internal/http",
+        "//internal/idempotency",
         "//internal/observability",
-        "@com_github_go_chi_chi_v5//:chi",
+        "//internal/rateLimit",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@com_github_rabbitmq_amqp091_go//:amqp091-go",
+        "@com_github_redis_go_redis_v9//:go-redis",
+        "@org_mongodb_go_mongo_driver//mongo",
+        "@org_mongodb_go_mongo_driver//mongo/options",
     ],
 )
 
@@ -17,13 +27,4 @@ go_binary(
     name = "api",
     embed = [":api_lib"],
     visibility = ["//visibility:public"],
-)
-
-load("@rules_oci//oci:defs.bzl", "oci_image")
-
-oci_image(
-    name = "api_image",
-    base = "@distroless_base",
-    cmd = ["//cmd/api:api"],
-    entrypoint = ["/api"],
 )

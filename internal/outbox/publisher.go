@@ -29,7 +29,6 @@ func (p *Publisher) Run(ctx context.Context) {
 		case <-ticker.C:
 			records, err := p.repo.GetUnpublishedOutbox(ctx, 10)
 			if err != nil {
-				// log
 				continue
 			}
 			for _, rec := range records {

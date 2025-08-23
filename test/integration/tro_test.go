@@ -178,7 +178,7 @@ func TestIntegration_HoldOrderConfirm(t *testing.T) {
 		ID:   eventID,
 		Name: "Test Event",
 		Seats: []mongoadapter.SeatDoc{
-			{Number: "A1", Row: "A", Section: "Main", Price: 100.0, Available: true},
+			{Number: "A1", Row: "A", Section: "Main", Price: 0.0, Available: true},
 		},
 	}
 	err = mongoCatalog.CreateEvent(ctx, event)

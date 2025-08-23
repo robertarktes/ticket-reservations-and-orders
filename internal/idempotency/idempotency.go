@@ -22,11 +22,21 @@ type Response struct {
 }
 
 func (i *Idempotency) Get(ctx context.Context, key string) (*Response, error) {
+	idempResp, err := i.redis.Get(ctx, key)
+	if err != nil || idempResp == nil {
+		return nil, err
+	}
 
-	return nil, nil
+	return &Response{
+		Status: idempResp.Status,
+		Result: idempResp.Result,
+	}, nil
 }
 
 func (i *Idempotency) Set(ctx context.Context, key string, resp Response) error {
-
-	return nil
+	idempResp := redisadapter.IdempResponse{
+		Status: resp.Status,
+		Result: resp.Result,
+	}
+	return i.redis.Set(ctx, key, idempResp, i.ttl)
 }

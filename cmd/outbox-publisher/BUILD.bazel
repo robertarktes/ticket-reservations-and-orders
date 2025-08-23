@@ -6,8 +6,12 @@ go_library(
     importpath = "github.com/robertarktes/ticket-reservations-and-orders/cmd/outbox-publisher",
     visibility = ["//visibility:private"],
     deps = [
+        "//internal/adapters/crdb",
+        "//internal/adapters/rabbit",
         "//internal/config",
-        "//internal/outbox",
+        "//internal/observability",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@com_github_rabbitmq_amqp091_go//:amqp091-go",
     ],
 )
 
@@ -15,13 +19,4 @@ go_binary(
     name = "outbox_publisher",
     embed = [":outbox_publisher_lib"],
     visibility = ["//visibility:public"],
-)
-
-load("@rules_oci//oci:defs.bzl", "oci_image")
-
-oci_image(
-    name = "outbox_publisher_image",
-    base = "@distroless_base",
-    cmd = ["//cmd/outbox-publisher:outbox_publisher"],
-    entrypoint = ["/outbox_publisher"],
 )

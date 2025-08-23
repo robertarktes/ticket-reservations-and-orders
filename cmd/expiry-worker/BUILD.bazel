@@ -25,12 +25,3 @@ go_binary(
     embed = [":expiry_worker_lib"],
     visibility = ["//visibility:public"],
 )
-
-load("@rules_oci//oci:defs.bzl", "oci_image")
-
-oci_image(
-    name = "expiry_worker_image",
-    base = "@distroless_base",
-    cmd = ["//cmd/expiry-worker:expiry_worker"],
-    entrypoint = ["/expiry_worker"],
-)

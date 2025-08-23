@@ -22,6 +22,9 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	holdTTL, _ := time.ParseDuration(os.Getenv("HOLD_TTL"))
+	if holdTTL == 0 {
+		holdTTL = 5 * time.Minute
+	}
 
 	return &Config{
 		CRDBDSN:      os.Getenv("CRDB_DSN"),

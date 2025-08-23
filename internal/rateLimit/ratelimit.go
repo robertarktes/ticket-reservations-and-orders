@@ -16,6 +16,16 @@ func NewRateLimiter(redis *redisadapter.Cache) *RateLimiter {
 }
 
 func (rl *RateLimiter) Allow(ctx context.Context, key string, rate int, period time.Duration) bool {
+	fullKey := "rl:" + key
 
-	return true
+	pipe := rl.redis.Client().Pipeline()
+	incr := pipe.Incr(ctx, fullKey)
+	pipe.Expire(ctx, fullKey, period)
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return false
+	}
+
+	return incr.Val() <= int64(rate)
 }

@@ -12,6 +12,10 @@ import (
 )
 
 func SetupOTel(ctx context.Context, cfg *config.Config) (func(), error) {
+	if cfg.OTLPEndpoint == "" {
+		return func() {}, nil
+	}
+
 	exp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(cfg.OTLPEndpoint), otlptracegrpc.WithInsecure())
 	if err != nil {
 		return nil, err

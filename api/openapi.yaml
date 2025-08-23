@@ -13,6 +13,10 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - event_id
+                - seats
+                - user_id
               properties:
                 event_id:
                   type: string
@@ -38,8 +42,14 @@ paths:
                   expires_at:
                     type: string
                     format: date-time
+        '400':
+          description: Bad request
+        '404':
+          description: Event not found
         '409':
           description: Conflict, seats already held
+        '500':
+          description: Internal server error
       security:
         - bearerAuth: []
   /v1/orders:
@@ -51,6 +61,11 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - event_id
+                - seats
+                - user_id
+                - payment_method
               properties:
                 event_id:
                   type: string
@@ -77,8 +92,12 @@ paths:
                     format: uuid
                   status:
                     type: string
+        '400':
+          description: Bad request
         '409':
           description: Conflict
+        '500':
+          description: Internal server error
       security:
         - bearerAuth: []
   /v1/orders/{id}:
@@ -87,7 +106,6 @@ paths:
       parameters:
         - name: id
           in: path
-          required: true
           schema:
             type: string
             format: uuid
@@ -105,30 +123,51 @@ paths:
                     type: array
                     items:
                       type: object
+                      properties:
+                        event_id:
+                          type: string
+                          format: uuid
+                        seat_no:
+                          type: string
+                        price:
+                          type: number
                   total:
                     type: number
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
       security:
         - bearerAuth: []
   /v1/payments/callback:
     post:
-      summary: Payment callback (mock)
+      summary: Payment callback
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - order_id
+                - status
+                - transaction_id
               properties:
                 order_id:
                   type: string
                   format: uuid
                 status:
                   type: string
+                  enum: [SUCCEEDED, FAILED]
                 transaction_id:
                   type: string
       responses:
         '200':
           description: Processed
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
   /v1/healthz:
     get:
       summary: Health check
@@ -147,8 +186,17 @@ paths:
       responses:
         '200':
           description: Metrics
-securitySchemes:
-  bearerAuth:
-    type: http
-    scheme: bearer
-    bearerFormat: JWT
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -8,3 +8,4 @@ bazel-cache
 bazel-ticket-reservations-and-orders
 
 WORKSPACE
+MODULE.bazel.lock

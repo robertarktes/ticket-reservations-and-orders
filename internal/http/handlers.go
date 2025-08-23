@@ -178,15 +178,22 @@ func (h *Handlers) GetOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order := domain.Order{ID: id, Status: "PENDING"}
-	items := []map[string]interface{}{{"event_id": uuid.Nil, "seat_no": "A1", "price": 100.0}}
-	total := 100.0
+	order, err := h.repo.GetOrder(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			http.Error(w, "order not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	resp := map[string]interface{}{
 		"status": order.Status,
-		"items":  items,
-		"total":  total,
+		"items":  order.Items,
+		"total":  order.TotalAmount,
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
 
@@ -234,5 +241,6 @@ func (h *Handlers) Readyz(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) Metrics(w http.ResponseWriter, r *http.Request) {
-
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Metrics endpoint - implement Prometheus handler"))
 }
